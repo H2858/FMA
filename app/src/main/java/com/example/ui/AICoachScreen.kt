@@ -1331,8 +1331,6 @@ fun AICoachScreen(
                 ) {
                     Text(
                         text = when (selectedVoiceId) {
-                            "tts_female" -> "امرأة"
-                            "tts_male" -> "رجل"
                             "eleven_spartan" -> "Spartan"
                             "eleven_mentor" -> "Mentor"
                             "eleven_partner" -> "Partner"

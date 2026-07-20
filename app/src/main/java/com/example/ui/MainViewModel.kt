@@ -2,7 +2,6 @@ package com.example.ui
 
 import android.app.Application
 import android.content.Context
-import android.speech.tts.TextToSpeech
 import java.util.Locale
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -107,8 +106,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val isSpeaking: StateFlow<Boolean> = _isSpeaking
 
     // Voice Selection engine and states
-    private var textToSpeech: TextToSpeech? = null
-
     private val _selectedVoiceId = MutableStateFlow("eleven_mentor")
     val selectedVoiceId: StateFlow<String> = _selectedVoiceId.asStateFlow()
 
@@ -178,82 +175,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setAndroidTTSVoice(isMale: Boolean) {
-        val tts = textToSpeech ?: return
-        try {
-            val availableVoices = tts.voices
-            if (availableVoices != null) {
-                val voice = availableVoices.firstOrNull {
-                    if (isMale) {
-                        it.name.lowercase().contains("male") || it.name.lowercase().contains("m-")
-                    } else {
-                        it.name.lowercase().contains("female") || it.name.lowercase().contains("f-")
-                    }
-                }
-                if (voice != null) {
-                    tts.voice = voice
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MainViewModel", "Error setting Android TTS voice: ${e.message}")
-        }
-        // Fallback pitch adjustments to distinguish gender
-        if (isMale) {
-            tts.setPitch(0.85f)
-            tts.setSpeechRate(0.95f)
-        } else {
-            tts.setPitch(1.15f)
-            tts.setSpeechRate(1.05f)
-        }
-    }
 
-    private fun speakAndroidTTS(text: String) {
-        val tts = textToSpeech ?: return
-        // Clean text to avoid speech synthesis noise
-        val cleanText = text.replace(Regex("[*#_`~]"), "")
-        _isSpeaking.value = true
-
-        val hasArabic = cleanText.any { it in '\u0600'..'\u06FF' || it in '\u0750'..'\u077F' || it in '\u08A0'..'\u08FF' }
-        val hasHindi = cleanText.any { it in '\u0900'..'\u097F' }
-        val hasFrench = cleanText.any { it in "éèàùçâêîôûëïü" }
-        val hasGerman = cleanText.any { it in "äöüßÄÖÜ" }
-        val hasSpanish = cleanText.any { it in "áéíóúñ¿¡" }
-        val hasPortuguese = cleanText.any { it in "ãõáéíóúç" }
-
-        val locale = when {
-            hasArabic -> java.util.Locale("ar")
-            hasHindi -> java.util.Locale("hi")
-            hasFrench -> java.util.Locale.FRANCE
-            hasGerman -> java.util.Locale.GERMANY
-            hasSpanish -> java.util.Locale("es")
-            hasPortuguese -> java.util.Locale("pt")
-            else -> java.util.Locale.US
-        }
-
-        val result = tts.setLanguage(locale)
-        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-            tts.language = java.util.Locale.getDefault()
-        }
-
-        tts.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {}
-            override fun onDone(utteranceId: String?) {
-                _isSpeaking.value = false
-            }
-            @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {
-                _isSpeaking.value = false
-            }
-            override fun onError(utteranceId: String?, errorCode: Int) {
-                _isSpeaking.value = false
-            }
-        })
-
-        val params = android.os.Bundle().apply {
-            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "coach_speech")
-        }
-        tts.speak(cleanText, TextToSpeech.QUEUE_FLUSH, params, "coach_speech")
-    }
 
     init {
         // Initialize dynamic Config values from SharedPreferences
@@ -262,15 +184,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         // Load saved voice preference
         val prefs = application.getSharedPreferences("user_session_prefs", Context.MODE_PRIVATE)
-        _selectedVoiceId.value = prefs.getString("selected_voice_id", "eleven_mentor") ?: "eleven_mentor"
+        val loadedVoice = prefs.getString("selected_voice_id", "eleven_mentor") ?: "eleven_mentor"
+        _selectedVoiceId.value = if (loadedVoice.startsWith("eleven_")) loadedVoice else "eleven_mentor"
         _isAiChatMode.value = prefs.getBoolean("is_ai_chat_mode", false)
-
-        // Initialize Android TextToSpeech
-        textToSpeech = TextToSpeech(application) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                textToSpeech?.language = Locale.getDefault()
-            }
-        }
 
         // Listen for user profile to sync coach persona
         viewModelScope.launch {
@@ -484,40 +400,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             stopAudio() // Stop any running speech first
 
             val finalVoiceId = _selectedVoiceId.value
+            val voiceToUse = when (finalVoiceId) {
+                "eleven_spartan" -> ElevenLabsService.SPARTAN_VOICE
+                "eleven_mentor" -> ElevenLabsService.MENTOR_VOICE
+                "eleven_partner" -> ElevenLabsService.PARTNER_VOICE
+                else -> ElevenLabsService.MENTOR_VOICE
+            }
 
-            if (finalVoiceId.startsWith("eleven_")) {
-                // Play using ElevenLabs API
-                val voiceToUse = when (finalVoiceId) {
-                    "eleven_spartan" -> ElevenLabsService.SPARTAN_VOICE
-                    "eleven_mentor" -> ElevenLabsService.MENTOR_VOICE
-                    "eleven_partner" -> ElevenLabsService.PARTNER_VOICE
-                    else -> ElevenLabsService.MENTOR_VOICE
-                }
-
-                val success = elevenLabsService.synthesizeAndPlayCustomVoice(text, voiceToUse) {
-                    _isSpeaking.value = false
-                }
-                if (!success) {
-                    // Fallback to Android TTS if ElevenLabs fails
-                    setAndroidTTSVoice(false)
-                    speakAndroidTTS(text)
-                }
-            } else {
-                // Play using Android TTS
-                val isMale = finalVoiceId == "tts_male"
-                setAndroidTTSVoice(isMale)
-                speakAndroidTTS(text)
+            val success = elevenLabsService.synthesizeAndPlayCustomVoice(text, voiceToUse) {
+                _isSpeaking.value = false
+            }
+            if (!success) {
+                android.util.Log.e("MainViewModel", "ElevenLabs speech synthesis failed.")
+                _isSpeaking.value = false
             }
         }
     }
 
     fun stopAudio() {
         elevenLabsService.stopPlayback()
-        try {
-            textToSpeech?.stop()
-        } catch (e: Exception) {
-            android.util.Log.e("MainViewModel", "Error stopping TextToSpeech: ${e.message}")
-        }
         _isSpeaking.value = false
     }
 
@@ -711,11 +612,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         stopAudio()
-        try {
-            textToSpeech?.shutdown()
-        } catch (e: Exception) {
-            android.util.Log.e("MainViewModel", "Error shutting down TextToSpeech: ${e.message}")
-        }
     }
 }
 
