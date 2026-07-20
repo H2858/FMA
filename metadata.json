@@ -1,0 +1,6 @@
+{
+  "name": "Focus Mate AI",
+  "description": "Premium individual discipline AI coaching app in Jetpack Compose featuring gorgeous Cosmic Emerald or Imperial Burgundy styling, a pulsing central vortex, custom ElevenLabs synthetic dialogue, and Supabase task persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
