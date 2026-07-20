@@ -216,6 +216,73 @@ class GeminiApiService(private val context: android.content.Context? = null) {
         }
     }
 
+    suspend fun askChat(
+        prompt: String,
+        history: List<GeminiContent> = emptyList()
+    ): String = withContext(Dispatchers.IO) {
+        val apiKey = if (context != null) Config.getOpenRouterKey(context) else Config.OPENROUTER_API_KEY
+
+        if (api == null || apiKey.isEmpty()) {
+            initializeApi()
+        }
+        val currentApi = api
+
+        if (currentApi == null || apiKey.isEmpty()) {
+            val lang = try {
+                com.example.ui.LanguageHelper.currentLanguage.value.code
+            } catch (e: Exception) {
+                "en"
+            }
+            return@withContext if (lang == "ar") {
+                "مرحباً! أنا مساعدك الذكي CHAT. استلمت رسالتك: '$prompt'. كيف يمكنني مساعدتك اليوم؟"
+            } else {
+                "Hello! I am your intelligent companion CHAT. I received your message: '$prompt'. How can I assist you today?"
+            }
+        }
+
+        val orMessages = mutableListOf<OpenRouterMessage>()
+
+        // Extremely neutral AI prompt, completely independent of coaching and tasks
+        val systemPrompt = "You are a helpful, extremely intelligent, polite, and general AI assistant named CHAT. Answer the user's questions clearly, objectively, and deeply without any personality bias, coaching personas, or reference to application tasks."
+        orMessages.add(OpenRouterMessage(role = "system", content = systemPrompt))
+
+        for (content in history) {
+            val text = content.parts.firstOrNull()?.text ?: continue
+            val role = when (content.role) {
+                "model" -> "assistant"
+                "assistant" -> "assistant"
+                else -> "user"
+            }
+            orMessages.add(OpenRouterMessage(role = role, content = text))
+        }
+
+        orMessages.add(OpenRouterMessage(role = "user", content = prompt))
+
+        val request = OpenRouterRequest(
+            model = "google/gemini-2.5-flash",
+            messages = orMessages,
+            temperature = 0.7f,
+            max_tokens = 1024
+        )
+
+        try {
+            val response = currentApi.generateContent("Bearer $apiKey", request = request)
+            val responseText = response.choices?.firstOrNull()?.message?.content
+            if (responseText != null) {
+                return@withContext responseText
+            } else {
+                return@withContext "Error: Failed to obtain response choices."
+            }
+        } catch (e: retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string() ?: ""
+            Log.e(TAG, "OpenRouter API HttpException in CHAT: $errorBody")
+            return@withContext "Error contacting Chat (OpenRouter API): HTTP ${e.code()}."
+        } catch (e: Exception) {
+            Log.e(TAG, "OpenRouter API content generation error in CHAT: ${e.message}")
+            return@withContext "Error contacting Chat: ${e.message}."
+        }
+    }
+
     private fun getMockResponse(prompt: String, persona: CoachPersona): String {
         val lang = try {
             com.example.ui.LanguageHelper.currentLanguage.value.code

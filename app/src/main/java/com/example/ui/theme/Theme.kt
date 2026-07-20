@@ -40,15 +40,15 @@ private val EmeraldDarkColorScheme = darkColorScheme(
 )
 
 private val EmeraldLightColorScheme = lightColorScheme(
-    primary = Color(0xFF047857), // Professional deep emerald green (high contrast)
-    secondary = Color(0xFF065F46), // Dark emerald forest
-    tertiary = Color(0xFF0F766E), // Teal accent
+    primary = Color(0xFF021B10), // Professional deep dark black-green (high contrast)
+    secondary = Color(0xFF032215), // Dark green-black forest
+    tertiary = Color(0xFF064E3B), // Dark emerald forest accent
     background = Color(0xFFFAFAFA), // Clean pristine background
     surface = Color(0xFFFFFFFF), // Crisp white cards
     onPrimary = Color.White,
     onSecondary = Color.White,
-    onBackground = Color(0xFF060D0A),
-    onSurface = Color(0xFF060D0A),
+    onBackground = Color(0xFF01140B),
+    onSurface = Color(0xFF01140B),
     surfaceVariant = Color(0xFFF3F4F6),
     onSurfaceVariant = Color(0xFF374151),
     outline = Color(0xFFE2E8F0)
@@ -76,6 +76,9 @@ fun MyApplicationTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    // Dynamic binding of global theme state
+    isDarkThemeGlobal = darkTheme
+
     val colorScheme = if (darkTheme) {
         if (isEmerald) EmeraldDarkColorScheme else BurgundyDarkColorScheme
     } else {

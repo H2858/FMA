@@ -119,6 +119,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _isAdminReal.value = !_isAdminReal.value
     }
 
+    private val _isAiChatMode = MutableStateFlow(false)
+    val isAiChatMode: StateFlow<Boolean> = _isAiChatMode.asStateFlow()
+
+    fun toggleAiChatMode() {
+        val nextValue = !_isAiChatMode.value
+        _isAiChatMode.value = nextValue
+        val prefs = getApplication<Application>().getSharedPreferences("user_session_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("is_ai_chat_mode", nextValue).apply()
+    }
+
     // 6. Visual Theme Preference (Default to beautiful Cosmic Emerald matching user screenshot)
     private val _isEmeraldTheme = MutableStateFlow(true)
     val isEmeraldTheme: StateFlow<Boolean> = _isEmeraldTheme.asStateFlow()
@@ -253,6 +263,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Load saved voice preference
         val prefs = application.getSharedPreferences("user_session_prefs", Context.MODE_PRIVATE)
         _selectedVoiceId.value = prefs.getString("selected_voice_id", "eleven_mentor") ?: "eleven_mentor"
+        _isAiChatMode.value = prefs.getBoolean("is_ai_chat_mode", false)
 
         // Initialize Android TextToSpeech
         textToSpeech = TextToSpeech(application) { status ->
@@ -346,24 +357,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _coachingState.value = CoachingState.Thinking
             stopAudio()
 
-            // Build dynamic context with outstanding tasks for proactive motivation
-            val outstandingTasks = tasks.value.filter { !it.isCompleted }
-            val taskContext = if (outstandingTasks.isNotEmpty()) {
-                "\n\nContext - User has these outstanding tasks that require proactive push or reflection:\n" +
-                        outstandingTasks.joinToString("\n") { "- ${it.title}: ${it.description}" }
+            val isChat = _isAiChatMode.value
+            val aiResponse = if (isChat) {
+                // Ask general chat without any coach identity or task constraints
+                geminiService.askChat(query)
             } else {
-                "\n\nContext - User has completed all their tasks today! Celebrate this victory appropriately."
+                // Build dynamic context with outstanding tasks for proactive motivation
+                val outstandingTasks = tasks.value.filter { !it.isCompleted }
+                val taskContext = if (outstandingTasks.isNotEmpty()) {
+                    "\n\nContext - User has these outstanding tasks that require proactive push or reflection:\n" +
+                            outstandingTasks.joinToString("\n") { "- ${it.title}: ${it.description}" }
+                } else {
+                    "\n\nContext - User has completed all their tasks today! Celebrate this victory appropriately."
+                }
+                val finalPrompt = query + taskContext
+                geminiService.askCoach(finalPrompt, _currentPersona.value)
             }
-
-            val finalPrompt = query + taskContext
-
-            // Ask Gemini with 3.1 Pro high thinking mode
-            val aiResponse = geminiService.askCoach(finalPrompt, _currentPersona.value)
 
             // Save log to database
             val logEntity = CoachingLogEntity(
                 id = UUID.randomUUID().toString(),
-                persona = _currentPersona.value.title,
+                persona = if (isChat) "CHAT" else _currentPersona.value.title,
                 userMessage = query,
                 aiResponse = aiResponse
             )
@@ -371,7 +385,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             _coachingState.value = CoachingState.Success(aiResponse)
 
-            // Trigger text to speech if premium or partner/mentor
+            // Trigger text to speech
             speakResponse(aiResponse)
         }
     }
@@ -385,25 +399,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val promptEncoded = java.net.URLEncoder.encode(prompt, "UTF-8")
                 val imageUrl = "https://image.pollinations.ai/prompt/${promptEncoded}?width=1024&height=1024&nologo=true"
                 
-                // Construct a motivational or analytical coach response alongside the image!
-                val aiResponse = when (_currentPersona.value) {
-                    GeminiApiService.CoachPersona.SPARTAN -> {
-                        "Here is the visual mapping of your spartan discipline for '$prompt': A harsh, powerful reminder of your ultimate goals. Do not let this vision slip away! Go get it!"
+                // Construct a motivational or analytical response alongside the image!
+                val aiResponse = if (_isAiChatMode.value) {
+                    val lang = try {
+                        LanguageHelper.currentLanguage.value.code
+                    } catch (e: Exception) {
+                        "en"
                     }
-                    GeminiApiService.CoachPersona.MENTOR -> {
-                        "I have envisioned a mindful, peaceful symbol of your journey for '$prompt'. Let this image bring you focus, clarity, and inner calmness as you take your next steps."
+                    if (lang == "ar") {
+                        "لقد قمت بإنشاء رسم توضيحي إبداعي عالي الجودة يمثل '$prompt' بناءً على طلبك."
+                    } else {
+                        "I have generated a high-quality creative illustration representing '$prompt' based on your request."
                     }
-                    GeminiApiService.CoachPersona.PARTNER -> {
-                        "BOOM! Check this out! Here is an energetic concept art for your goal '$prompt'! This is exactly the vibe we are aiming for! Let's make it happen!"
-                    }
-                    GeminiApiService.CoachPersona.GENERAL -> {
-                        "I have generated a high-quality creative illustration representing '$prompt' based on your creative prompt."
+                } else {
+                    when (_currentPersona.value) {
+                        GeminiApiService.CoachPersona.SPARTAN -> {
+                            "Here is the visual mapping of your spartan discipline for '$prompt': A harsh, powerful reminder of your ultimate goals. Do not let this vision slip away! Go get it!"
+                        }
+                        GeminiApiService.CoachPersona.MENTOR -> {
+                            "I have envisioned a mindful, peaceful symbol of your journey for '$prompt'. Let this image bring you focus, clarity, and inner calmness as you take your next steps."
+                        }
+                        GeminiApiService.CoachPersona.PARTNER -> {
+                            "BOOM! Check this out! Here is an energetic concept art for your goal '$prompt'! This is exactly the vibe we are aiming for! Let's make it happen!"
+                        }
+                        GeminiApiService.CoachPersona.GENERAL -> {
+                            "I have generated a high-quality creative illustration representing '$prompt' based on your creative prompt."
+                        }
                     }
                 }
                 
                 val logEntity = CoachingLogEntity(
                     id = UUID.randomUUID().toString(),
-                    persona = _currentPersona.value.title,
+                    persona = if (_isAiChatMode.value) "CHAT" else _currentPersona.value.title,
                     userMessage = "Generate Image: $prompt",
                     aiResponse = aiResponse
                 )
@@ -422,22 +449,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _coachingState.value = CoachingState.Thinking
             stopAudio()
             
-            // Construct a motivational or analytical coach response for the image
-            val outstandingTasks = tasks.value.filter { !it.isCompleted }
-            val taskContext = if (outstandingTasks.isNotEmpty()) {
-                "\n\nContext - User has these outstanding tasks:\n" +
-                        outstandingTasks.joinToString("\n") { "- ${it.title}" }
+            val isChat = _isAiChatMode.value
+            val aiResponse = if (isChat) {
+                geminiService.askChat(query + " [Note: User attached an image proof/focus context]")
             } else {
-                "\n\nContext - User has completed all tasks!"
+                // Construct a motivational or analytical coach response for the image
+                val outstandingTasks = tasks.value.filter { !it.isCompleted }
+                val taskContext = if (outstandingTasks.isNotEmpty()) {
+                    "\n\nContext - User has these outstanding tasks:\n" +
+                            outstandingTasks.joinToString("\n") { "- ${it.title}" }
+                } else {
+                    "\n\nContext - User has completed all tasks!"
+                }
+                val finalPrompt = query + " [Note: User attached an image proof/focus context] " + taskContext
+                geminiService.askCoach(finalPrompt, _currentPersona.value)
             }
-            
-            // Since they provided an image proof, let's ask Gemini to analyze it or respond motivationally
-            val finalPrompt = query + " [Note: User attached an image proof/focus context] " + taskContext
-            val aiResponse = geminiService.askCoach(finalPrompt, _currentPersona.value)
             
             val logEntity = CoachingLogEntity(
                 id = UUID.randomUUID().toString(),
-                persona = _currentPersona.value.title,
+                persona = if (isChat) "CHAT" else _currentPersona.value.title,
                 userMessage = "$query (Attached Image Proof)",
                 aiResponse = aiResponse
             )

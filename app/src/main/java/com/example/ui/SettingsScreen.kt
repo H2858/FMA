@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -169,6 +170,72 @@ fun SettingsScreen(
                                 uncheckedTrackColor = Color.DarkGray
                             ),
                             modifier = Modifier.testTag("dark_mode_switch")
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // CHAT Mode Toggle
+                val isAiChatMode by viewModel.isAiChatMode.collectAsState()
+                Text(
+                    text = if (currentLanguage == AppLanguage.ARABIC) "نمط التطبيق" else "APPLICATION MODE",
+                    color = TextPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isEmerald) GlassGreenOverlay else GlassOverlay)
+                        .border(1.dp, if (isEmerald) GlassGreenBorder else GlassBorder, RoundedCornerShape(20.dp))
+                        .clickable { viewModel.toggleAiChatMode() }
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                imageVector = Icons.Default.Forum,
+                                contentDescription = "CHAT Mode Icon",
+                                tint = EmeraldIconColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = if (isAiChatMode) "CHAT" else (if (currentLanguage == AppLanguage.ARABIC) "المدرب الذكي" else "Smart Coach Mode"),
+                                    color = TextPrimary,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (currentLanguage == AppLanguage.ARABIC) 
+                                        "التحويل بين المحادثة العامة (CHAT) وتطبيق الكوتش الذكي." 
+                                        else "Switch between general AI conversation (CHAT) and coaching personas.",
+                                    color = if (isEmerald) TextSecondaryGreen else TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        Switch(
+                            checked = isAiChatMode,
+                            onCheckedChange = { viewModel.toggleAiChatMode() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = EmeraldIconColor,
+                                checkedTrackColor = EmeraldDark,
+                                uncheckedThumbColor = Color.Gray,
+                                uncheckedTrackColor = Color.DarkGray
+                            ),
+                            modifier = Modifier.testTag("ai_chat_mode_switch")
                         )
                     }
                 }

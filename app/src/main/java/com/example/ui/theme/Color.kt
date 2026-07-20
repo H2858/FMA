@@ -18,10 +18,19 @@ val SlateCard = Color(0xFF160F12)             // Darker background card
 val SlateCardBorder = Color(0xFF2C1920)       // Thin premium borders
 
 // --- COSMIC EMERALD PALETTE (Soft, premium, and comfortable for the eyes) ---
-val EmeraldPrimary = Color(0xFF10B981)        // Soft classy emerald green (comfortable for eyes)
-val EmeraldGlow = Color(0xFF059669)           // Deeper rich green glow
-val EmeraldDark = Color(0xFF064E3B)           // Dark rich forest emerald
-val EmeraldLight = Color(0xFF34D399)          // Soft pastel mint green
+var isDarkThemeGlobal = true
+
+val EmeraldPrimary: Color
+    get() = if (isDarkThemeGlobal) Color(0xFF10B981) else Color(0xFF021B10)
+
+val EmeraldGlow: Color
+    get() = if (isDarkThemeGlobal) Color(0xFF059669) else Color(0xFF01140B)
+
+val EmeraldDark: Color
+    get() = if (isDarkThemeGlobal) Color(0xFF064E3B) else Color(0xFF000804)
+
+val EmeraldLight: Color
+    get() = if (isDarkThemeGlobal) Color(0xFF34D399) else Color(0xFF032D1C)
 
 // Obsidian Dark Palette (Emerald Mode)
 val ObsidianBlack = Color(0xFF060D0A)         // Ultra-dark background with deep teal/green undertone (matches screenshot)
@@ -33,13 +42,11 @@ fun ColorScheme.isLight(): Boolean = this.background == Color(0xFFFAFAFA)
 
 // Dynamic responsive icon color for emerald mode
 val EmeraldIconColor: Color
-    @Composable
-    get() = if (MaterialTheme.colorScheme.isLight()) Color(0xFF032215) else Color(0xFF10B981)
+    get() = if (isDarkThemeGlobal) Color(0xFF10B981) else Color(0xFF021B10)
 
 // Dynamic button container color for emerald mode
 val EmeraldButtonColor: Color
-    @Composable
-    get() = if (MaterialTheme.colorScheme.isLight()) Color(0xFF032215) else Color(0xFF10B981)
+    get() = if (isDarkThemeGlobal) Color(0xFF10B981) else Color(0xFF021B10)
 
 // Text & Accent Colors - Dynamically responsive to Light/Dark Mode
 val TextPrimary: Color
@@ -52,7 +59,7 @@ val TextSecondary: Color
 
 val TextSecondaryGreen: Color
     @Composable
-    get() = if (MaterialTheme.colorScheme.isLight()) Color(0xFF032B1B) else Color(0xFF8FA89B)
+    get() = if (MaterialTheme.colorScheme.isLight()) Color(0xFF021B10) else Color(0xFF8FA89B)
 
 val TextMuted: Color
     @Composable
@@ -60,7 +67,7 @@ val TextMuted: Color
 
 val TextMutedGreen: Color
     @Composable
-    get() = if (MaterialTheme.colorScheme.isLight()) Color(0xFF053A25) else Color(0xFF536B5E)
+    get() = if (MaterialTheme.colorScheme.isLight()) Color(0xFF032215) else Color(0xFF536B5E)
 
 // Glassmorphism effects - Dynamically responsive to Light/Dark Mode
 val GlassOverlay: Color
@@ -69,7 +76,7 @@ val GlassOverlay: Color
 
 val GlassGreenOverlay: Color
     @Composable
-    get() = if (MaterialTheme.colorScheme.isLight()) Color(0x0C032215) else Color(0x660B1411)
+    get() = if (MaterialTheme.colorScheme.isLight()) Color(0x1A021B10) else Color(0x660B1411)
 
 val GlassBorder: Color
     @Composable
@@ -77,7 +84,7 @@ val GlassBorder: Color
 
 val GlassGreenBorder: Color
     @Composable
-    get() = if (MaterialTheme.colorScheme.isLight()) Color(0x28032215) else Color(0x33E6FFEE)
+    get() = if (MaterialTheme.colorScheme.isLight()) Color(0x33021B10) else Color(0x33E6FFEE)
 
 
 // Accent Neon

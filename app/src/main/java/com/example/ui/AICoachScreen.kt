@@ -73,6 +73,7 @@ fun AICoachScreen(
     val notifications by viewModel.notifications.collectAsState()
     val isEmerald by viewModel.isEmeraldTheme.collectAsState()
     val selectedVoiceId by viewModel.selectedVoiceId.collectAsState()
+    val isAiChatMode by viewModel.isAiChatMode.collectAsState()
 
     fun text(key: String): String = LanguageHelper.translate(key)
 
@@ -370,7 +371,7 @@ fun AICoachScreen(
                         maxLines = 1
                     )
                     Text(
-                        text = "${currentPersona.title} Active",
+                        text = if (isAiChatMode) "CHAT Mode Active" else "${currentPersona.title} Active",
                         color = if (isEmerald) TextSecondaryGreen else TextSecondary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
@@ -508,7 +509,7 @@ fun AICoachScreen(
 
             // Large Title
             Text(
-                text = text("coach_greeting"),
+                text = if (isAiChatMode) "CHAT" else text("coach_greeting"),
                 color = TextPrimary,
                 fontSize = 32.sp,
                 lineHeight = 38.sp,
@@ -518,94 +519,95 @@ fun AICoachScreen(
             )
 
             // Modern Horizontal Coach Persona Selector (Dynamic Global Standards)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                listOf(
-                    GeminiApiService.CoachPersona.SPARTAN to (Icons.Default.FlashOn to text("spartan")),
-                    GeminiApiService.CoachPersona.MENTOR to (Icons.Default.Spa to text("mentor")),
-                    GeminiApiService.CoachPersona.PARTNER to (Icons.Default.Whatshot to text("partner")),
-                    GeminiApiService.CoachPersona.GENERAL to (Icons.Default.Chat to text("general"))
-                ).forEach { (persona, pair) ->
-                    val (icon, label) = pair
-                    val isSelected = currentPersona == persona
-                    val isLocked = persona == GeminiApiService.CoachPersona.SPARTAN && !isPremium
-                    
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (isSelected) {
-                                    if (isEmerald) EmeraldPrimary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                } else {
-                                    if (isEmerald) GlassGreenOverlay else GlassOverlay
-                                }
-                            )
-                            .border(
-                                width = if (isSelected) 2.dp else 1.dp,
-                                color = if (isSelected) {
-                                    if (isEmerald) EmeraldPrimary else MaterialTheme.colorScheme.primary
-                                } else {
-                                    if (isEmerald) GlassGreenBorder else GlassBorder
-                                },
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .clickable {
-                                if (isLocked) {
-                                    onNavigateToPricing()
-                                } else {
-                                    viewModel.setPersona(persona)
-                                }
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Box(contentAlignment = Alignment.TopEnd) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = label,
-                                    tint = if (isSelected) {
+            if (!isAiChatMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf(
+                        GeminiApiService.CoachPersona.SPARTAN to (Icons.Default.FlashOn to text("spartan")),
+                        GeminiApiService.CoachPersona.MENTOR to (Icons.Default.Spa to text("mentor")),
+                        GeminiApiService.CoachPersona.PARTNER to (Icons.Default.Whatshot to text("partner"))
+                    ).forEach { (persona, pair) ->
+                        val (icon, label) = pair
+                        val isSelected = currentPersona == persona
+                        val isLocked = persona == GeminiApiService.CoachPersona.SPARTAN && !isPremium
+                        
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (isSelected) {
+                                        if (isEmerald) EmeraldPrimary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                    } else {
+                                        if (isEmerald) GlassGreenOverlay else GlassOverlay
+                                    }
+                                )
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = if (isSelected) {
                                         if (isEmerald) EmeraldPrimary else MaterialTheme.colorScheme.primary
                                     } else {
-                                        TextPrimary.copy(alpha = 0.7f)
+                                        if (isEmerald) GlassGreenBorder else GlassBorder
                                     },
-                                    modifier = Modifier.size(20.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 )
-                                if (isLocked) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = "Premium Locked",
-                                        tint = Color(0xFFF1C40F),
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .align(Alignment.TopEnd)
-                                    )
+                                .clickable {
+                                    if (isLocked) {
+                                        onNavigateToPricing()
+                                    } else {
+                                        viewModel.setPersona(persona)
+                                    }
                                 }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Box(contentAlignment = Alignment.TopEnd) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = label,
+                                        tint = if (isSelected) {
+                                            if (isEmerald) EmeraldPrimary else MaterialTheme.colorScheme.primary
+                                        } else {
+                                            TextPrimary.copy(alpha = 0.7f)
+                                        },
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    if (isLocked) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "Premium Locked",
+                                            tint = Color(0xFFF1C40F),
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .align(Alignment.TopEnd)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = label,
+                                    color = if (isSelected) TextPrimary else TextPrimary.copy(alpha = 0.8f),
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1
+                                )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = label,
-                                color = if (isSelected) TextPrimary else TextPrimary.copy(alpha = 0.8f),
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1
-                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(if (isAiChatMode) 20.dp else 10.dp))
 
             // Pulse Aura & Vortex Canvas
             Box(
@@ -877,7 +879,7 @@ fun AICoachScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Sleek Chat/Prompt Input Bar
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
@@ -887,287 +889,323 @@ fun AICoachScreen(
                         if (isEmerald) GlassGreenBorder else GlassBorder,
                         RoundedCornerShape(24.dp)
                     )
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. Pick Image Button
-                IconButton(
-                    onClick = { imagePickerLauncher.launch("image/*") },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = "Attach Progress Photo",
-                        tint = if (attachedImageUri != null) EmeraldPrimary else (if (isEmerald) TextSecondaryGreen else TextSecondary),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // 2. Generate Image Button (only active/enabled if userQuery is not blank)
-                val isQueryPresent = userQuery.isNotBlank()
-                IconButton(
-                    onClick = {
-                        if (isQueryPresent) {
-                            viewModel.generateAIImage(userQuery)
-                            userQuery = ""
-                        }
-                    },
-                    enabled = isQueryPresent,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Palette,
-                        contentDescription = "Generate AI Image",
-                        tint = if (isQueryPresent) EmeraldPrimary else (if (isEmerald) TextMutedGreen else TextMuted),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                TextField(
-                    value = userQuery,
-                    onValueChange = { userQuery = it },
-                    placeholder = { Text(text("command_placeholder"), color = if (isEmerald) TextMutedGreen else TextMuted, fontSize = 14.sp) },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
+                // 1. Text Input Field Row
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .testTag("coaching_input")
-                )
-
-                // Dynamic Voice Selection Dropdown Arrow Icon
-                var showVoiceMenu by remember { mutableStateOf(false) }
-                val isPremiumUser by viewModel.isPremium.collectAsState()
-                val context = androidx.compose.ui.platform.LocalContext.current
-
-                Box {
-                    IconButton(
-                        onClick = { showVoiceMenu = true },
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextField(
+                        value = userQuery,
+                        onValueChange = { userQuery = it },
+                        placeholder = { Text(text("command_placeholder"), color = if (isEmerald) TextMutedGreen else TextMuted, fontSize = 14.sp) },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
                         modifier = Modifier
-                            .size(36.dp)
-                            .testTag("voice_dropdown_btn")
+                            .weight(1f)
+                            .testTag("coaching_input"),
+                        maxLines = 4
+                    )
+                }
+
+                // 2. Bottom Toolbar Row containing action buttons
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 10.dp, top = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // --- LEFT GROUP: Attachments & Options ---
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        // A beautiful plus (+) button for image attachments
+                        IconButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(
+                                    if (attachedImageUri != null) EmeraldIconColor.copy(alpha = 0.2f)
+                                    else Color.Transparent,
+                                    CircleShape
+                                )
+                        ) {
                             Icon(
-                                imageVector = if (selectedVoiceId.startsWith("eleven_")) Icons.Default.Star else Icons.Default.PlayArrow,
-                                contentDescription = "Select Voice",
-                                tint = if (selectedVoiceId.startsWith("eleven_")) EmeraldPrimary else TextSecondaryGreen,
-                                modifier = Modifier.size(18.dp)
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Attach Progress Photo",
+                                tint = if (attachedImageUri != null) EmeraldIconColor else (if (isEmerald) TextSecondaryGreen else TextSecondary),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        // Palette icon to Generate AI Image (enabled when text is present)
+                        val isQueryPresent = userQuery.isNotBlank()
+                        IconButton(
+                            onClick = {
+                                if (isQueryPresent) {
+                                    viewModel.generateAIImage(userQuery)
+                                    userQuery = ""
+                                }
+                            },
+                            enabled = isQueryPresent,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = "Generate AI Image",
+                                tint = if (isQueryPresent) EmeraldIconColor else (if (isEmerald) TextMutedGreen else TextMuted),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    // --- MIDDLE GROUP: Pill-shaped voice selector ---
+                    var showVoiceMenu by remember { mutableStateOf(false) }
+                    val voiceDisplayName = when (selectedVoiceId) {
+                        "eleven_spartan" -> "Strict Spartan"
+                        "eleven_mentor" -> "Wise Mentor"
+                        "eleven_partner" -> "Empathetic Partner"
+                        else -> "Wise Mentor"
+                    }
+                    val voiceIcon = when (selectedVoiceId) {
+                        "eleven_spartan" -> Icons.Default.Warning
+                        "eleven_mentor" -> Icons.Default.Star
+                        "eleven_partner" -> Icons.Default.Favorite
+                        else -> Icons.Default.Star
+                    }
+
+                    Box(contentAlignment = Alignment.Center) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(EmeraldIconColor.copy(alpha = 0.12f))
+                                .border(1.dp, EmeraldIconColor.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
+                                .clickable { showVoiceMenu = true }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = voiceIcon,
+                                contentDescription = null,
+                                tint = EmeraldIconColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = voiceDisplayName,
+                                color = TextPrimary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
                             )
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Dropdown menu",
-                                tint = TextSecondaryGreen,
+                                contentDescription = null,
+                                tint = if (isEmerald) TextSecondaryGreen else TextSecondary,
                                 modifier = Modifier.size(14.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showVoiceMenu,
+                            onDismissRequest = { showVoiceMenu = false },
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.dp, if (isEmerald) GlassGreenBorder else GlassBorder, RoundedCornerShape(12.dp))
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Icon(
+                                            Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = if (selectedVoiceId == "eleven_spartan") EmeraldIconColor else TextSecondaryGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            "Strict Spartan",
+                                            color = if (selectedVoiceId == "eleven_spartan") EmeraldIconColor else TextPrimary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.setVoiceId("eleven_spartan")
+                                    showVoiceMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Icon(
+                                            Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = if (selectedVoiceId == "eleven_mentor") EmeraldIconColor else TextSecondaryGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            "Wise Mentor",
+                                            color = if (selectedVoiceId == "eleven_mentor") EmeraldIconColor else TextPrimary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.setVoiceId("eleven_mentor")
+                                    showVoiceMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Icon(
+                                            Icons.Default.Favorite,
+                                            contentDescription = null,
+                                            tint = if (selectedVoiceId == "eleven_partner") EmeraldIconColor else TextSecondaryGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            "Empathetic Partner",
+                                            color = if (selectedVoiceId == "eleven_partner") EmeraldIconColor else TextPrimary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.setVoiceId("eleven_partner")
+                                    showVoiceMenu = false
+                                }
                             )
                         }
                     }
 
-                    DropdownMenu(
-                        expanded = showVoiceMenu,
-                        onDismissRequest = { showVoiceMenu = false },
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, if (isEmerald) GlassGreenBorder else GlassBorder, RoundedCornerShape(12.dp))
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "Strict Spartan (ElevenLabs)",
-                                        color = if (selectedVoiceId == "eleven_spartan") EmeraldPrimary else TextPrimary,
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            },
-                            onClick = {
-                                viewModel.setVoiceId("eleven_spartan")
-                                showVoiceMenu = false
-                            },
-                            leadingIcon = {
+                    // --- RIGHT GROUP: Dynamic Action Buttons (Send or Mic & Live Waves) ---
+                    val isInputNotEmpty = userQuery.isNotBlank() || attachedImageUri != null
+                    AnimatedContent(
+                        targetState = isInputNotEmpty,
+                        label = "RightControlsTransition"
+                    ) { hasText ->
+                        if (hasText) {
+                            IconButton(
+                                onClick = {
+                                    if (attachedImageUri != null) {
+                                        viewModel.submitCoachingQueryWithImage(userQuery, attachedImageUri.toString())
+                                        attachedImageUri = null
+                                    } else {
+                                        viewModel.submitCoachingQuery(userQuery)
+                                    }
+                                    userQuery = ""
+                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(EmeraldButtonColor)
+                                    .testTag("send_command_button")
+                            ) {
                                 Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = if (selectedVoiceId == "eleven_spartan") EmeraldPrimary else TextSecondaryGreen,
-                                    modifier = Modifier.size(16.dp)
+                                    imageVector = Icons.Default.Send,
+                                    contentDescription = "Send Command",
+                                    tint = if (MaterialTheme.colorScheme.isLight()) Color.White else Color.Black,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "Wise Mentor (ElevenLabs)",
-                                        color = if (selectedVoiceId == "eleven_mentor") EmeraldPrimary else TextPrimary,
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.weight(1f)
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                // Voice Input / Recorder Button (Mic style)
+                                IconButton(
+                                    onClick = {
+                                        SoundManager.playClick()
+                                        startSystemVoiceSession()
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(EmeraldIconColor.copy(alpha = 0.15f))
+                                        .testTag("mic_voice_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Mic,
+                                        contentDescription = "Voice Input Recorder",
+                                        tint = EmeraldIconColor,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
-                            },
-                            onClick = {
-                                viewModel.setVoiceId("eleven_mentor")
-                                showVoiceMenu = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = if (selectedVoiceId == "eleven_mentor") EmeraldPrimary else TextSecondaryGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        "Empathetic Partner (ElevenLabs)",
-                                        color = if (selectedVoiceId == "eleven_partner") EmeraldPrimary else TextPrimary,
-                                        fontSize = 12.sp,
-                                        modifier = Modifier.weight(1f)
+
+                                // Live AI Conversation Icon Button (glowing dynamic waveform style)
+                                IconButton(
+                                    onClick = {
+                                        SoundManager.playClick()
+                                        showLiveVoiceSession = true
+                                        startLiveSpeechRecognizer()
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(EmeraldIconColor.copy(alpha = 0.15f))
+                                        .testTag("live_voice_mode_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.GraphicEq,
+                                        contentDescription = "Live AI Conversation",
+                                        tint = EmeraldIconColor,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
-                            },
-                            onClick = {
-                                viewModel.setVoiceId("eleven_partner")
-                                showVoiceMenu = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Favorite,
-                                    contentDescription = null,
-                                    tint = if (selectedVoiceId == "eleven_partner") EmeraldPrimary else TextSecondaryGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
                             }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                // Live AI Conversation Icon Button (glowing dynamic waveform style)
-                IconButton(
-                    onClick = {
-                        SoundManager.playClick()
-                        showLiveVoiceSession = true
-                        startLiveSpeechRecognizer()
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(EmeraldIconColor.copy(alpha = 0.15f))
-                        .testTag("live_voice_mode_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.GraphicEq,
-                        contentDescription = "Live AI Conversation",
-                        tint = EmeraldIconColor,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                // 1. Voice Input / Recorder Button (Mic style) - always visible, beautifully styled
-                IconButton(
-                    onClick = {
-                        SoundManager.playClick()
-                        startSystemVoiceSession()
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                        .testTag("mic_voice_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Mic,
-                        contentDescription = "Voice Input Recorder",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // 2. Send Arrow Button - always visible, changes opacity when empty
-                val canSend = userQuery.isNotBlank() || attachedImageUri != null
-                IconButton(
-                    onClick = {
-                        if (canSend) {
-                            if (attachedImageUri != null) {
-                                viewModel.submitCoachingQueryWithImage(userQuery, attachedImageUri.toString())
-                                attachedImageUri = null
-                            } else {
-                                viewModel.submitCoachingQuery(userQuery)
-                            }
-                            userQuery = ""
                         }
-                    },
-                    enabled = canSend,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (canSend) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            }
-                        )
-                        .testTag("send_command_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Send Command",
-                        tint = if (canSend) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                        modifier = Modifier.size(20.dp)
-                    )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (!isAiChatMode) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Sub-Dashboard section: Show Quick Add Task trigger
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isEmerald) GlassGreenOverlay else GlassOverlay)
-                    .border(1.dp, if (isEmerald) GlassGreenBorder.copy(alpha = 0.5f) else GlassBorder.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                    .clickable { showTaskDialog = true }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.AddTask,
-                        contentDescription = "Add Task",
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(text("sync_tasks"), color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        val incomplete = tasks.count { !it.isCompleted && !it.isExpired }
-                        val expiredCount = tasks.count { it.isExpired }
-                        Text("$incomplete pending | $expiredCount failed/expired", color = if (isEmerald) TextSecondaryGreen else TextSecondary, fontSize = 11.sp)
+                // Sub-Dashboard section: Show Quick Add Task trigger
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (isEmerald) GlassGreenOverlay else GlassOverlay)
+                        .border(1.dp, if (isEmerald) GlassGreenBorder.copy(alpha = 0.5f) else GlassBorder.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                        .clickable { showTaskDialog = true }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AddTask,
+                            contentDescription = "Add Task",
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(text("sync_tasks"), color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            val incomplete = tasks.count { !it.isCompleted && !it.isExpired }
+                            val expiredCount = tasks.count { it.isExpired }
+                            Text("$incomplete pending | $expiredCount failed/expired", color = if (isEmerald) TextSecondaryGreen else TextSecondary, fontSize = 11.sp)
+                        }
                     }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Open",
+                        tint = if (isEmerald) TextMutedGreen else TextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Open",
-                    tint = if (isEmerald) TextMutedGreen else TextMuted,
-                    modifier = Modifier.size(16.dp)
-                )
             }
 
             Spacer(modifier = Modifier.height(100.dp)) // Leave space for bottom nav bar
@@ -1995,7 +2033,11 @@ fun TaskManagementDialog(
             }
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
                 Text(
                     text = text("task_queue_desc") + " Enter a duration (minutes) to enforce a strict locking deadline.",
                     color = if (isEmerald) TextSecondaryGreen else TextSecondary,
@@ -2308,15 +2350,15 @@ fun TaskManagementDialog(
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 120.dp, max = 340.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (tasks.isEmpty()) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
+                                .height(120.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(Color.Black.copy(alpha = 0.15f))
                                 .border(1.dp, if (isEmerald) GlassGreenBorder.copy(alpha = 0.3f) else GlassBorder.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
@@ -2338,18 +2380,13 @@ fun TaskManagementDialog(
                             }
                         }
                     } else {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(tasks) { task ->
-                                ModernTaskCard(
-                                    task = task,
-                                    isEmerald = isEmerald,
-                                    onToggleTask = onToggleTask,
-                                    onDeleteTask = onDeleteTask
-                                )
-                            }
+                        tasks.forEach { task ->
+                            ModernTaskCard(
+                                task = task,
+                                isEmerald = isEmerald,
+                                onToggleTask = onToggleTask,
+                                onDeleteTask = onDeleteTask
+                            )
                         }
                     }
                 }
